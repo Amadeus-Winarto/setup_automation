@@ -45,8 +45,10 @@
         copy:
           src: files/.zshrc
           dest: /home/{{ ansible_user_id }}/.zshrc
+      - name: Change owner and permissions of .zshrc
+        ansible.builtin.file:
+          path: /home/{{ ansible_user_id }}/.zshrc
           owner: "{{ ansible_user_id }}"
-          group: "{{ ansible_user_id }}"
           mode: 0644
 
 - hosts: localhost
