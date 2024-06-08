@@ -52,7 +52,14 @@
 - hosts: localhost
   become: no
   tasks:
-    - name: Configure Vim
-      shell:
-        cmd: |
-          git clone --depth=1 https://github.com/amix/vimrc.git ~/.vim_runtime && sh ~/.vim_runtime/install_awesome_vimrc.sh
+    - name: Install and configure Vim
+      block:
+      - name: See if .vim_runtime exists
+        stat:
+          path: /home/{{ ansible_user_id }}/.vim_runtime
+        register: vim_folder
+      - name: Configure Vim
+        shell:
+          cmd: |
+            git clone --depth=1 https://github.com/amix/vimrc.git ~/.vim_runtime && sh ~/.vim_runtime/install_awesome_vimrc.sh
+        when: vim_folder.stat.exists == False
