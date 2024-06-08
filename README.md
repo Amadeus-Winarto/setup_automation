@@ -3,22 +3,16 @@
 The following repo contains tools and configs for automation of the setup of a new machine.
 
 ## Usage
-1. Install [pipx](https://github.com/pypa/pipx): 
+1. Clone this repo and change directory to the cloned repo:
     ```bash
-    sudo apt update
-    sudo apt install pipx
-    pipx ensurepath
-    sudo pipx ensurepath --global # optional to allow pipx actions with --global argumentP
+    git clone git@github.com:Amadeus-Winarto/setup_automation.git
+    cd setup_automation
     ```
-2. Install [ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html):
+2. Run dependencies installation:
     ```bash
-    pipx install ansible
+    ./setup_dependencies.sh
     ```
-3. Clone this repo:
-    ```bash
-    git clone
-    ```
-4. Run the playbook:
+3. Run the playbook:
     ```bash
     ansible-playbook -K playbook.yml
     ```
