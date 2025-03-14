@@ -1,3 +1,5 @@
+#!/bin/bash -eu
+
 # Install pipx
 
 echo "Installing pipx"
@@ -8,6 +10,6 @@ pipx ensurepath
 
 # Install ansible
 echo "Installing ansible"
-pipx install ansible
+pipx install --include-deps ansible
 
 echo "Done!"
