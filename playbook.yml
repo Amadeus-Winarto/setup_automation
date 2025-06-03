@@ -1,67 +1,99 @@
 ---
 - hosts: localhost
-  become: yes
+  become: true
   tasks:
     - name: Update apt cache
-      apt:
-        update_cache: yes
+      ansible.builtin.apt:
+        update_cache: true
 
 - hosts: localhost
-  become: no
+  become: false
   tasks:
     - name: Create SSH Keys
       block:
-      - name: Check if SSH key exists
-        stat:
-          path: /home/{{ ansible_user_id }}/.ssh/id_ed25519
-        register: ssh_key 
-      - name: Generate SSH key
-        shell: ssh-keygen -t ed25519 -C "{{ ansible_user_id }}" -N "" -f /home/{{ ansible_user_id }}/.ssh/id_ed25519
-        when: ssh_key.stat.exists == False
+        - name: Check if SSH key exists
+          ansible.builtin.stat:
+            path: /home/{{ ansible_user_id }}/.ssh/id_ed25519
+          register: ssh_key
+        - name: Generate SSH key
+          ansible.builtin.command: ssh-keygen -t ed25519 -C "{{ ansible_user_id }}" -N "" -f /home/{{ ansible_user_id }}/.ssh/id_ed25519
+          when: ssh_key.stat.exists == False
 
 - hosts: localhost
-  become: no
+  become: false
   tasks:
     - name: Install and configure zsh
       block:
-      - name: Install zsh
-        become: yes
-        apt:
-          name: zsh
-          state: present
-      - name: Check if $ZSH folder exists
-        stat:
-          path: /home/{{ ansible_user_id }}/.oh-my-zsh
-        register: zsh_folder
-      - name: Install oh-my-zsh 
-        shell: sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-        when: zsh_folder.stat.exists == False
-      - name: Set zsh as default shell
-        become: yes
-        user:
-          name: "{{ ansible_user_id }}"
-          shell: /usr/bin/zsh
-      - name: Copy zshrc file
-        copy:
-          src: files/.zshrc
-          dest: /home/{{ ansible_user_id }}/.zshrc
-      - name: Change owner and permissions of .zshrc
-        ansible.builtin.file:
-          path: /home/{{ ansible_user_id }}/.zshrc
-          owner: "{{ ansible_user_id }}"
-          mode: 0644
+        - name: Install zsh
+          become: true
+          ansible.builtin.apt:
+            name: zsh
+            state: present
+        - name: Check if $ZSH folder exists
+          ansible.builtin.stat:
+            path: /home/{{ ansible_user_id }}/.oh-my-zsh
+          register: zsh_folder
+        - name: Install oh-my-zsh
+          ansible.builtin.shell: sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+          when: zsh_folder.stat.exists == False
+        - name: Set zsh as default shell
+          become: true
+          ansible.builtin.user:
+            name: "{{ ansible_user_id }}"
+            shell: /usr/bin/zsh
+        - name: Copy zshrc file
+          ansible.builtin.copy:
+            src: files/.zshrc
+            dest: /home/{{ ansible_user_id }}/.zshrc
+        - name: Change owner and permissions of .zshrc
+          ansible.builtin.file:
+            path: /home/{{ ansible_user_id }}/.zshrc
+            owner: "{{ ansible_user_id }}"
+            mode: "0644"
 
 - hosts: localhost
-  become: no
+  become: false
   tasks:
     - name: Install and configure Vim
       block:
-      - name: See if .vim_runtime exists
-        stat:
-          path: /home/{{ ansible_user_id }}/.vim_runtime
-        register: vim_folder
-      - name: Configure Vim
-        shell:
-          cmd: |
-            git clone --depth=1 https://github.com/amix/vimrc.git ~/.vim_runtime && sh ~/.vim_runtime/install_awesome_vimrc.sh
-        when: vim_folder.stat.exists == False
+        - name: See if .vim_runtime exists
+          ansible.builtin.stat:
+            path: /home/{{ ansible_user_id }}/.vim_runtime
+          register: vim_folder
+        - name: Configure Vim
+          ansible.builtin.shell:
+            cmd: |
+              git clone --depth=1 https://github.com/amix/vimrc.git ~/.vim_runtime && sh ~/.vim_runtime/install_awesome_vimrc.sh
+          when: vim_folder.stat.exists == false
+
+- hosts: localhost
+  become: false
+  vars:
+    oh_my_tmux_path: "{{ ansible_env.HOME }}/.oh-my-tmux"
+    tmux_config_path: "{{ ansible_env.HOME }}/.config/tmux"
+  tasks:
+    - name: Clone oh-my-tmux repository
+      ansible.builtin.git:
+        repo: https://github.com/gpakosz/.tmux.git
+        dest: "{{ oh_my_tmux_path }}"
+        single_branch: true
+
+    - name: Ensure ~/.config/tmux directory exists
+      ansible.builtin.file:
+        path: "{{ tmux_config_path }}"
+        state: directory
+        mode: "0755"
+
+    - name: Symlink .tmux.conf to ~/.config/tmux/tmux.conf
+      ansible.builtin.file:
+        src: "{{ oh_my_tmux_path }}/.tmux.conf"
+        dest: "{{ tmux_config_path }}/tmux.conf"
+        state: link
+        force: true
+
+    - name: Copy .tmux.conf.local to ~/.config/tmux/tmux.conf.local
+      ansible.builtin.copy:
+        src: "{{ oh_my_tmux_path }}/.tmux.conf.local"
+        dest: "{{ tmux_config_path }}/tmux.conf.local"
+        remote_src: true
+        force: false
